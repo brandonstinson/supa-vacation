@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { Formik, Form } from 'formik';
 import Input from '@/components/Input';
 import ImageUpload from '@/components/ImageUpload';
+import axios from 'axios';
 
 const ListingSchema = Yup.object().shape({
   title: Yup.string().trim().required(),
@@ -27,8 +28,22 @@ const ListingForm = ({
   const [disabled, setDisabled] = useState(false);
   const [imageUrl, setImageUrl] = useState(initialValues?.image ?? '');
 
-  const upload = async image => {
-    // TODO: Upload image to remote storage
+  const upload = async (image) => {
+    if (!image) return;
+
+    let toastId;
+    try {
+      setDisabled(true);
+      toastId = toast.loading('Uploading...');
+      const { data } = await axios.post('/api/image-upload', { image });
+      setImageUrl(data?.url);
+      toast.success('Successfully uploaded', { id: toastId });
+    } catch (e) {
+      toast.error('Unable to upload', { id: toastId });
+      setImageUrl('');
+    } finally {
+      setDisabled(false);
+    }
   };
 
   const handleOnSubmit = async (values = null) => {
@@ -74,8 +89,7 @@ const ListingForm = ({
         initialValues={initialFormValues}
         validationSchema={ListingSchema}
         validateOnBlur={false}
-        onSubmit={handleOnSubmit}
-      >
+        onSubmit={handleOnSubmit}>
         {({ isSubmitting, isValid }) => (
           <Form className="space-y-8">
             <div className="space-y-6">
@@ -137,8 +151,7 @@ const ListingForm = ({
               <button
                 type="submit"
                 disabled={disabled || !isValid}
-                className="bg-rose-600 text-white py-2 px-6 rounded-md focus:outline-none focus:ring-4 focus:ring-rose-600 focus:ring-opacity-50 hover:bg-rose-500 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600"
-              >
+                className="bg-rose-600 text-white py-2 px-6 rounded-md focus:outline-none focus:ring-4 focus:ring-rose-600 focus:ring-opacity-50 hover:bg-rose-500 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-600">
                 {isSubmitting ? 'Submitting...' : buttonText}
               </button>
             </div>
